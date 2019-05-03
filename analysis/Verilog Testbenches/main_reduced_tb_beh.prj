@@ -1,0 +1,5 @@
+verilog work "multiplier_18x18.v"
+verilog work "DAC_modified.v"
+verilog work "main_reduced.v"
+verilog work "main_reduced_tb.v"
+verilog work "C:/Xilinx/14.7/ISE_DS/ISE//verilog/src/glbl.v"
