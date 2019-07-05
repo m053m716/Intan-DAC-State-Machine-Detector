@@ -20,7 +20,7 @@ The ***[compiled](https://github.com/m053m716/Intan-DAC-State-Machine-Detector/t
 
 ## Source Code
 
-Our lab computers run 64-bit Windows 7. If you would like to use the code provided here, but have a different operating system, you can compile from the code available in the ***[source code](https://github.com/m053m716/Intan-DAC-State-Machine-Detector/tree/master/source)*** folder. If there is difficulty compiling, please **report an issue** using the provided template. Within reason, we may be able to post other pre-compiled static versions of the executable, as needed.
+Our lab computers run 64-bit Windows 7. If you would like to use the code provided here, but have a different operating system, you can compile from the code available in the ***[source code](https://github.com/m053m716/Intan-DAC-State-Machine-Detector/tree/master/source)*** folder. If there is difficulty compiling, please **[report an issue](https://github.com/m053m716/Intan-DAC-State-Machine-Detector/issues/new/choose)** using the provided *Install Request* template. Within reason, we may be able to post other pre-compiled static versions of the executable, as needed.
 
 
 
