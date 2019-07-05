@@ -11,9 +11,8 @@ NAME = 'R18-159_2019_02_01_2';
 FS = 30000;
 
 %% DEFINE WINDOW PARAMETERS
-% % For window state machine (restrictive):
+% For window state machine (restrictive):
 params = struct;
-params.data_prefix = 'window-spikes-art';
 params.DAC_en         = [  1  1   1   1   1   1    1   1];
 params.DAC_edge_type  = [  1  1   0   1   0   1    1   0]; % 0==Inc, 1==Exc
 params.dac_thresholds = [-25 60 -30  -5  15 -45 -110 -40];
@@ -27,7 +26,6 @@ params.XLIM = [-1.0 0.4];
 
 % For monopolar threshold:
 % params = struct;
-% params.data_prefix = 'thresh-spikes';
 % params.DAC_en         = [  0  0   0   0   0   0    0   1];
 % params.DAC_edge_type  = [  1  1   0   1   0   1    1   0]; % 0==Inc, 1==Exc
 % params.dac_thresholds = [-25 60 -30  -5  15 -45 -110 -40];
@@ -37,11 +35,10 @@ params.XLIM = [-1.0 0.4];
 % params.data_suffix = '_DAC.mat';
 % params.dac_ratio_gain = (0.195 / 312.5e-6);
 % params.edge_type = 'rising';
-% params.XLIM = [-1.0 0.4];
+params.XLIM = [-1.0 0.4];
 
-% % For window state machine (ideal - thresh):
+% For window state machine (ideal - thresh):
 % params = struct;
-% params.data_prefix = '';
 % params.DAC_en         = [  0  0   0   0   0   0    0    1];
 % params.DAC_edge_type  = [  1  1   0   1   1   1    1    0]; % 0==Inc,1==Exc
 % params.dac_thresholds = [-25 60 -30  -5 -40  50  -60  -70];
@@ -53,9 +50,8 @@ params.XLIM = [-1.0 0.4];
 % params.edge_type = 'rising';
 % params.XLIM = [-0.6 0.4];
 
-% % For window state machine (ideal - fsm):
+% For window state machine (ideal - fsm):
 % params = struct;
-% params.data_prefix = '';
 % params.DAC_en         = [  0  0   0   0   1   1    1    1];
 % params.DAC_edge_type  = [  1  1   0   1   1   0    1    0]; % 0==Inc,1==Exc
 % params.dac_thresholds = [-25 60 -30  -5 -50  -90  -200  -70];
@@ -67,15 +63,17 @@ params.XLIM = [-1.0 0.4];
 % params.edge_type = 'none';
 % params.XLIM = [-0.6 0.4];
 
+params.fs = FS;
+params.make_spike_fig = false;
 
 %% RUN SIMULATION
 [fsm_window_state,fig] = simulateFSM(NAME,params);
 doOfflineDACdetect(NAME,fsm_window_state,params);
 
 %% GET SPIKES AND REJECTS
-params.wlen = max(params.window_stop.*params.DAC_en);
-spikes = getFSMDetectedSpikes(NAME,fsm_window_state,params);
-rejects = getFSMRejectedSpikes(NAME,fsm_window_state,params);
+maxWindow = max(params.window_stop.*params.DAC_en);
+spikes = getFSMDetectedSpikes(NAME,maxWindow,fsm_window_state,params);
+rejects = getFSMRejectedSpikes(NAME,maxWindow,fsm_window_state,params);
 
 %% PLOT SPIKES AND REJECTS
 if iscell(NAME)

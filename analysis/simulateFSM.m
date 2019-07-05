@@ -36,7 +36,6 @@ fs = 30000;
 edge_type = 'none';
 data_suffix = '_DAC.mat';
 dac_ratio_gain = (0.195 / 312.5e-6);
-peak_offset = 14;
 
 %% PARSE INPUT
 if nargin > 1
@@ -79,17 +78,18 @@ if (make_spike_fig)
       'Units','Normalized',...
       'Color','w',...
       'Position',[0.3 0.3 0.4 0.4]);
-   time_ms=1e3*(peak_offset:(peak_offset+DAC_stop_max-1))/fs;
+   time_ms=1e3*(1:45)/fs;
    incl_exc_col={'bo','ro'};
    for curr_dac=1:8
-      if logical(DAC_en(curr_dac))
-         window_samples=(window_start(curr_dac):(window_stop(curr_dac)-1))+1;
+      if DAC_en(curr_dac)
+         window_samples=window_start(curr_dac):window_stop(curr_dac)-1;
+         window_samples_shifted=window_samples+14;
          subplot(1,2,1)
-         plot(time_ms(window_samples),dac_thresholds_0195(curr_dac),incl_exc_col{DAC_edge_type(curr_dac)+1})
+         plot(time_ms(window_samples_shifted),dac_thresholds_0195(curr_dac),incl_exc_col{DAC_edge_type(curr_dac)+1})
          hold on
          title('detected spikes in the last two samples')
          subplot(1,2,2)
-         plot(time_ms(window_samples),dac_thresholds_0195(curr_dac),incl_exc_col{DAC_edge_type(curr_dac)+1})
+         plot(time_ms(window_samples_shifted),dac_thresholds_0195(curr_dac),incl_exc_col{DAC_edge_type(curr_dac)+1})
          hold on
          title('aborted spikes in the last two samples')
       end
@@ -153,7 +153,7 @@ for curr_sample=1:length(data)
                   figure(fig)
                   subplot(1,2,2)
                   idx = getSpikeSamples(curr_sample,fsm_counter(curr_sample));
-                  plot(time_ms((numel(time_ms)-numel(idx)+1):end),data(idx),'k')
+                  plot(time_ms,data(idx),'k')
                   hold on
                end
             end
@@ -166,7 +166,7 @@ for curr_sample=1:length(data)
             figure(fig);
             subplot(1,2,1)
             idx = getSpikeSamples(curr_sample,DAC_stop_max);
-            if (min(idx) > 0) && (max(idx) <= numel(data)) && (numel(idx) == numel(time_ms))
+            if (min(idx) > 0) && (max(idx) <= numel(data))
                plot(time_ms,data(idx),'k')
             end
             hold on
@@ -185,7 +185,6 @@ for curr_sample=1:length(data)
       fprintf(1,'\b\b\b\b\b%03g%%\n',pct);
    end
 end
-
 % Account for 2-sample delay
 fsm_window_state = [zeros(1,2), fsm_window_state(1:(end-2))];
 

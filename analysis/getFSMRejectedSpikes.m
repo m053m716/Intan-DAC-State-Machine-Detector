@@ -1,4 +1,4 @@
-function rejects = getFSMRejectedSpikes(name,fsm_window_out,params)
+function rejects = getFSMRejectedSpikes(name,wlen,fsm_window_out,params)
 %% GETFSMREJECTEDSPIKES    Get spikes rejected by state machine on DAC
 %
 %  rejects = GETFSMREJECTEDSPIKES(name);
@@ -26,36 +26,17 @@ function rejects = getFSMRejectedSpikes(name,fsm_window_out,params)
 % By: Max Murphy  v1.0  2019-02-04  Original version (R2017a)
 
 %% DEFAULTS
-debug = false;
-n_max = inf;
-dac_ratio_gain = (0.195/0.0003125);
-data_suffix = '_DAC.mat';
-wlen = 15;
-samples_prior = wlen + 13;
-samples_after = wlen - 13;
-if nargin > 3
-   if isfield(params,'dac_ratio_gain')
-      dac_ratio_gain = params.dac_ratio_gain;
-   end
+DATA_DIR = 'data';
+WLEN = 15;
+DEBUG = false;
+N_MAX = inf;
 
-   if isfield(params,'data_suffix')
-      data_suffix = params.data_suffix;
-   end
-   
-   if isfield(params,'wlen')
-      wlen = params.wlen;
-   end
-   
-   if isfield(params,'n_max')
-      n_max = params.n_max;
-   end
-   
-   if isfield(params,'debug')
-      debug = params.debug;
-   end
+if nargin < 2
+   wlen = WLEN;
 end
 
-
+samples_prior = wlen + 13;
+samples_after = wlen - 13;
 
 %% GET DATA DIRECTORY
 in_dir = strsplit(pwd,filesep);
@@ -76,8 +57,11 @@ if iscell(name)
 end
 
 %% LOAD DATA
-
-dac = load(fullfile(in_dir,[name data_suffix]));
+if nargin > 3
+   dac = load(fullfile(in_dir,[name params.data_suffix]));
+else
+   dac = load(fullfile(in_dir,[name '_DAC.mat']));
+end
 
 if nargin > 2
    act = struct('data',fsm_window_out == 1);
@@ -88,7 +72,7 @@ else
 end
 
 %%  Find all times FSM was successfully completed
-idx = getFSMrejectIndices(act.data,trig.data,wlen,debug) + wlen;
+idx = getFSMrejectIndices(act.data,trig.data,wlen,DEBUG) + wlen;
 idx = reshape(idx,numel(idx),1);
 
 %% Create indexing vector for snippets
@@ -101,7 +85,7 @@ vec(any(exc,2),:) = [];
 idx(any(exc,2)) = [];
 
 %% Reduce the size of the number to keep
-iKeep = randperm(min(size(vec,1),n_max),min(size(vec,1),n_max));
+iKeep = randperm(min(size(vec,1),N_MAX),min(size(vec,1),N_MAX));
 vec = vec(iKeep,:);
 idx = idx(iKeep);
 
@@ -110,6 +94,6 @@ vec = vec + idx;
 
 exc = (vec < 1) | (vec > numel(dac.data));
 vec(any(exc,2),:) = [];
-rejects = dac.data(vec) * dac_ratio_gain; % convert to uV
+rejects = dac.data(vec) * (0.195/0.0003125); % convert to uV
 
 end

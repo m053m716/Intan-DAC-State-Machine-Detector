@@ -1,4 +1,4 @@
-function [amplifier_data,fs,t] = read_Intan_RHS2000_file(fname)
+function read_Intan_RHS2000_file(fname)
 
 % read_Intan_RHS2000_file
 %
@@ -509,10 +509,6 @@ else
 end
 fprintf(1, 'Type ''whos'' to see variables.\n');
 fprintf(1, '\n');
-
-if nargout > 1
-   fs = frequency_parameters.amplifier_sample_rate;
-end
 
 return
 

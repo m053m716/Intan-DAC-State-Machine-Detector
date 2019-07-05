@@ -22,10 +22,10 @@ function fig = plotFSMsnippets(name,snippets,rejects,params)
 % By: Max Murphy v1.0   2019-02-04  Original version (R2017a)
 
 %% DEFAULTS
-fs = 30000;          % Hz
-n_spikes_plot  = 250;     % Max. number of spike waveforms to plot
-n_rejects_plot = 250;     % Max. number of rejected waveforms to plot
-peak_offset = 13;    % Number of samples prior to waveform
+FS = 30000;          % Hz
+N_SPIKES  = 250;     % Max. number of spike waveforms to plot
+N_REJECTS = 250;     % Max. number of rejected waveforms to plot
+PRE_SAMPLES = 13;    % Number of samples prior to waveform
 % STIM_DELAY_MS = 10;  % (ms) Delay between spike trigger and STIM onset
 STIM_DELAY_MS = 0;
 STIM_TOTAL_DURATION_MS = 0.2; % (ms) Total duration of stim (both phases)
@@ -45,35 +45,13 @@ if isfield(params,'XLIM')
    XLIM = params.XLIM;
 end
 
-if isfield(params,'YLIM')
-   YLIM = params.YLIM;
-end
-
-if isfield(params,'fs')
-   fs = params.fs;
-end
-
-if isfield(params,'n_spikes_plot')
-   n_spikes_plot = params.n_spikes_plot;
-end
-
-if isfield(params,'n_rejects_plot')
-   n_rejects_plot = params.n_rejects_plot;
-end
-
-if isfield(params,'peak_offset')
-   peak_offset = params.peak_offset;
-end
-
-
-
 %% PARSE INPUT
 dacParams = parseParams(params);
 
 % Offset by 2 samples to account for delay on trigger:
 T = 0 : (size(snippets,2)-1);
-T = T - (dacParams.wMax + peak_offset) + 2;
-t = T / fs * 1000;
+T = T - (dacParams.wMax + PRE_SAMPLES) + 2;
+t = T / FS * 1000;
 
 %% MAKE FIGURE
 fig = figure('Name',['DAC spikes: ' name],...
@@ -100,7 +78,7 @@ if isempty(rejects) % If rejects empty --> stim waveforms
    'FontSize',12);
 
    % Plot prior segment (not yet in FSM)
-   iStart = (peak_offset - 2);
+   iStart = (PRE_SAMPLES - 2);
    samples = 1:iStart;
    plot(ax,t(samples),snippets(:,samples),...
       'Color',[0.0 0.0 0.0],...
@@ -114,7 +92,7 @@ if isempty(rejects) % If rejects empty --> stim waveforms
       'Linewidth',1.5);
    
    % Add intermediate segments (5-sample delay for sequencer)
-   iStim = iStop + 5 + (STIM_DELAY_MS / 1000 * fs);
+   iStim = iStop + 5 + (STIM_DELAY_MS / 1000 * FS);
    samples = iStop:iStim;
    plot(ax,t(samples),snippets(:,samples),...
       'Color',[0.0 0.0 0.0],...
@@ -127,7 +105,7 @@ if isempty(rejects) % If rejects empty --> stim waveforms
       'Color',[0.8 0.1 0.1],...
       'Linewidth',1.5);
 
-   addLevels(ax,dacParams,fs,1.5,5);
+   addLevels(ax,dacParams,FS,1.5,5);
 else % Otherwise plot rejected spikes and overlay detected ones
 
    ax = axes(fig,'Color','w',...
@@ -144,29 +122,29 @@ else % Otherwise plot rejected spikes and overlay detected ones
    'FontSize',12);
 
    % Plot rejects first
-   if n_rejects_plot > size(rejects,1)
+   if N_REJECTS > size(rejects,1)
       plot(ax,t,rejects.',...
          'Color',[0.85 0.85 0.85],...
          'Linewidth',1.75);
    else
-      plot(ax,t,rejects(randperm(size(rejects,1),n_rejects_plot),:).',...
+      plot(ax,t,rejects(randperm(size(rejects,1),N_REJECTS),:).',...
          'Color',[0.85 0.85 0.85],...
          'Linewidth',1.75);
    end
    hold on;
    % Overlay spikes
-   if n_spikes_plot > size(snippets,1)
+   if N_SPIKES > size(snippets,1)
       plot(ax,t,snippets.',...
          'Color',[0.6 0.1 0.8],...
          'Linewidth',1.75);
    else
-      plot(ax,t,snippets(randperm(size(snippets,1),n_spikes_plot),:).',...
+      plot(ax,t,snippets(randperm(size(snippets,1),N_SPIKES),:).',...
          'Color',[0.6 0.1 0.8],...
          'Linewidth',1.75);
       
    end
    % Add threshold levels
-   addLevels(ax,dacParams,fs,3,15);
+   addLevels(ax,dacParams,FS,3,15);
 end
 
 xlabel('Time (ms)','FontName','Arial','FontSize',14,'Color','k');
