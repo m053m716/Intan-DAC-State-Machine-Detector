@@ -47,19 +47,22 @@ dac = load(fullfile(in_dir,[name data_suffix]));
 data = dac.data * dac_ratio_gain;
 
 %% DO DETECTION ON THIS CHANNEL
+
 wlen = getMaxWindowStop(fsm_window_state);
 [peak_train,class] = getSpikePeakSamples(fsm_window_state,wlen,COUNT_ARTIFACT);
 [spikes,iRemove] = getSpikesFromIndex(peak_train,data,wlen);
 peak_train(iRemove) = [];
 class(iRemove) = [];
-
 features = getSpikeFeatures(spikes);
+
+
 pars = struct;
 pars.FS = 30000;
 pars.FEAT_NAMES = {'PC-1','PC-2','PC-3'}; %#ok<STRNU>
 
+
 %% MAKE OUTPUT
-block = fullfile(pwd,name);
+block = fullfile(pwd,params.data_prefix,name);
 if exist(block,'dir')==0
    mkdir(block);
 end
@@ -78,5 +81,38 @@ end
 save(fullfile(cludir,[name '_clus_P0_Ch_000.mat']),...
    'pars','class','-v7.3');
 
+
+%% IF GROUND TRUTH IS KNOWN, MAKE "SORTED" FOLDER AS WELL
+switch params.data_suffix
+   case '_GeneratedGroundTruthData.mat' % Ground truth spikes are KNOWN
+      load(fullfile('..','data',[name params.data_suffix]),'iPeak');
+      if isfield(params,'peak_offset')
+         peak_offset = params.peak_offset;
+      else
+         peak_offset = 25;
+      end
+      
+      true_peaks = iPeak - peak_offset + wlen;
+      pkDist = nan(size(peak_train));
+      for ii = 1:numel(peak_train)
+         pkDist(ii) = min(abs(true_peaks - peak_train(ii)));
+         if pkDist(ii) > peak_offset
+            class(ii) = 1; % "non-trigger" --> artifact --> incorrect
+         else
+            class(ii) = 2; % "trigger" --> spike --> correct
+         end
+      end
+      
+      sortdir = fullfile(block,[name '_wav-sneo_SPC_CAR_Sorted']);
+      if exist(sortdir,'dir')==0
+         mkdir(sortdir);
+      end
+      
+      save(fullfile(sortdir,[name '_sort_P0_Ch_000.mat']),...
+         'pars','class','pkDist','-v7.3');
+      fprintf(1,'Finished offline detect for %s. Ground truth is known.\n',name);
+   otherwise % Need to detect peak train etc.
+      fprintf(1,'Finished offline detect for %s. Still needs manual sorting.\n',name);
+end
 
 end
