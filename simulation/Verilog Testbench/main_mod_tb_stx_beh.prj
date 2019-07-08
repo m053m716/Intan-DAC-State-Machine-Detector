@@ -1,0 +1,5 @@
+verilog isim_temp "multiplier_18x18.v"
+verilog isim_temp "DAC_modified.v"
+verilog isim_temp "main_reduced.v"
+verilog isim_temp "main_mod_tb.v"
+verilog isim_temp "C:/Xilinx/14.7/ISE_DS/ISE//verilog/src/glbl.v"
