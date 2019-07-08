@@ -41,7 +41,13 @@ amplifier_u16=32768+amplifier_data(ch_indx_ampl,start_sample:stop_sample)/0.195;
 data_bin=dec2bin(amplifier_u16,16);
 bin_matrix=char(data_bin);
 
-fileID = fopen('C:\Users\BuccelliLab\Documents\GitHub\intan-dac-debug\HPF_tests\ampl_data_bin.txt', 'w');
+% Change the current folder to the folder of this m-file.
+if(~isdeployed)
+  cd(fileparts(which(mfilename)));
+end
+cd ..
+
+fileID = fopen('ampl_data_bin.txt', 'w');
 for i=1:length(bin_matrix)
     %     fprintf(fileID, '%s \n', hex_matrix(i,:));
     fprintf(fileID, '%s \n', bin_matrix(i,:));

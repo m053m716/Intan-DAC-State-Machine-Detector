@@ -1,17 +1,19 @@
 % clear
-% read_Intan_RHS2000_file('C:\Users\BuccelliLab\Documents\GitHub\intan-dac-debug\R19-00_2019-01-23\R19-00_2019-01-23_0_190123_094952.rhs')
-% read_Intan_RHS2000_file('C:\Users\BuccelliLab\Desktop\Prova_intan\Ordered_recordings\prova_29_01_4_DACs_190129_095945.rhs')
-% read_Intan_RHS2000_file('C:\Users\BuccelliLab\Desktop\Prova_intan\Ordered_recordings\prova_29_01_4_DACs_190129_095945_190129_103700.rhs')
 
+% Change the current folder to the folder of this m-file.
+if(~isdeployed)
+  cd(fileparts(which(mfilename)));
+end
+cd ..
 fs=30e3; % 20kHz sampling rate 
 %% retrieve binary data from txt files (output of testbench main_red_tb.v)
 % 1. DAC_output_register_1
-fileID_DAC = fopen('C:\Users\BuccelliLab\Documents\GitHub\Intan-DAC-State-Machine-Detector\analysis\Verilog Testbenches\output_main_reduced_2.txt', 'r');
+fileID_DAC = fopen('output_main_reduced_2.txt', 'r');
 retrieved_vector_DAC_bin = fscanf(fileID_DAC, '%s');
 retrieved_matrix_DAC_bin = reshape(retrieved_vector_DAC_bin,16,[])';
 fclose(fileID_DAC);
 % 2. fsm_window_state
-fileID_fsm_state = fopen('C:\Users\BuccelliLab\Documents\GitHub\Intan-DAC-State-Machine-Detector\analysis\Verilog Testbenches\output_fsm_window_state_1.txt', 'r');
+fileID_fsm_state = fopen('output_fsm_window_state_1.txt', 'r');
 retrieved_bin_vector_fsm = fscanf(fileID_fsm_state, '%s');
 retrieved_matrix_fsm_bin = reshape(retrieved_bin_vector_fsm,32,[])';
 fclose(fileID_DAC);
@@ -22,7 +24,7 @@ tb_fsm_uint16 = bin2dec(retrieved_matrix_fsm_bin(1:end,:));    %uint16 range (0:
 % tb_DAC_uint16 = bin2dec(retrieved_matrix_DAC_bin(1:length(board_dac_data(1,:)),:)); %uint16 range (0:2^16-1)=0:65535
 % tb_fsm_uint16 = bin2dec(retrieved_matrix_fsm_bin(1:length(board_dac_data(1,:)),:));    %uint16 range (0:2^16-1)=0:65535
 %% thresholds used 
-th_1=round(-40/0.195)*0.195; %uV
+th_1=round(-46/0.195)*0.195; %uV
 th_1_to_tb=round(th_1/0.195)+ 32768; %uint16 This is as in Qt the threshold is sent to the FPGA
 th_2=round(-66/0.195)*0.195; %uV
 th_2_to_tb=round(th_2/0.195)+ 32768; %uint16 This is as in Qt the threshold is sent to the FPGA
