@@ -63,6 +63,6 @@ All **matlab** test-benches were made using Matlab version R2017a, and do not re
 
 ### Verilog
 
-The **verilog** tesbench was made using ISE Design Suite 14.7. All the details on how to use it can be found [here]()
+The **verilog** tesbench was made using ISE Design Suite 14.7. All the details on how to use it can be found [here](https://github.com/m053m716/Intan-DAC-State-Machine-Detector/wiki/ISE_testbench)
 
 
