@@ -55,7 +55,7 @@ Raw, processed, and synthesized data used to generate the manuscript figures is 
 
 ### Simulink
 
-All **simulink** test-benches were made using Matlab version R2018b and have not been tested with earlier releases.
+All **simulink** test-benches were made using Matlab version R2018b and have not been tested with earlier releases. It requires StateFlow toolbox to run.
 
 ### Matlab
 
@@ -63,7 +63,7 @@ All **matlab** test-benches were made using Matlab version R2017a, and do not re
 
 ### Verilog
 
-*Stefano, could you update this (or the wiki) with explicit instructions for running the ISE Verilog simulations?*
+The verilog tesbench gets data from a txt file, performs a spike detection through the window discriminator algorithm with the same parameters used online and outputs the simulated DAC_register values. A matlab code then compares the online and the simulated DAC_register values and plots the results.
 
 
 
