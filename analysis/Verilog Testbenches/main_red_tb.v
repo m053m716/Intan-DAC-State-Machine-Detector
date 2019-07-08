@@ -122,12 +122,12 @@ module main_red_tb;
 		ampl_to_DAC = 0;
 		SPI_start = 1;
 		DAC_start_win_1 = 0;
-		DAC_start_win_2 = 4;
-		DAC_stop_win_1 = 2;
-		DAC_stop_win_2 = 8;
-		DAC_stop_max = 8;
-		DAC_edge_type = 2'b01;
-		HPF_coefficient = 5894; // 3991 is 300Hz/30000kS  //3343 is 250/30000 // 5894 300/2000Hz
+		DAC_start_win_2 = 2;
+		DAC_stop_win_1 = 3;
+		DAC_stop_win_2 = 5;
+		DAC_stop_max = 3;
+		DAC_edge_type = 2'b10; // 0 is inclusion, 1 exclusion
+		HPF_coefficient = 3991; // 3991 is 300Hz/30000kS  //3343 is 250/30000 // 5894 300/2000Hz
 		HPF_en = 1;
 		DAC_sequencer_1 = 0;
 		DAC_sequencer_2 = 0;
@@ -136,10 +136,10 @@ module main_red_tb;
 		DAC_en = 2'b11;
 		DAC_gain = 0;
 		DAC_noise_suppress = 0;
-		DAC_thrsh_1 = 32255;//-100
-		DAC_thrsh_2 = 30973;//-350
-		DAC_thrsh_pol_1 = 1; //DAC_thrsh_pol ? (DAC_input_offset >= DAC_thrsh) : (DAC_input_offset <= DAC_thrsh))
-		DAC_thrsh_pol_2 = 1;
+		DAC_thrsh_1 = 30794;//-385
+		DAC_thrsh_2 = 27122;//-1101
+		DAC_thrsh_pol_1 = 0; //DAC_thrsh_pol ? (DAC_input_offset >= DAC_thrsh) : (DAC_input_offset <= DAC_thrsh))
+		DAC_thrsh_pol_2 = 0; //0 if negative threshold
 		DAC_reref_mode = 0;
 		DAC_input_is_ref = 0;
 		DAC_reref_register = 0;

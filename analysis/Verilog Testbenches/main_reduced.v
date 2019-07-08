@@ -25,54 +25,95 @@ module main_reduced(
 	input wire			SPI_start,
 	
 	input wire [15:0]	DAC_start_win_1,	
-	input wire [15:0]	DAC_start_win_2,	
+	input wire [15:0]	DAC_start_win_2,
+	input wire [15:0]	DAC_start_win_3,	
+	input wire [15:0]	DAC_start_win_4,
+	input wire [15:0]	DAC_start_win_5,	
+	input wire [15:0]	DAC_start_win_6,
+	input wire [15:0]	DAC_start_win_7,	
+	input wire [15:0]	DAC_start_win_8,
+
+	
 	input wire [15:0]	DAC_stop_win_1,
 	input wire [15:0]	DAC_stop_win_2,
+	input wire [15:0]	DAC_stop_win_3,
+	input wire [15:0]	DAC_stop_win_4,
+	input wire [15:0]	DAC_stop_win_5,
+	input wire [15:0]	DAC_stop_win_6,
+	input wire [15:0]	DAC_stop_win_7,
+	input wire [15:0]	DAC_stop_win_8,
+	
+	
 	input wire [15:0]	DAC_stop_max,
-	input wire [1:0]	DAC_edge_type,	
-	output wire[1:0]	DAC_thresh_out, //this was 8bits in the original main
+	input wire [7:0]	DAC_edge_type,	
+	output wire[7:0]	DAC_thresh_out, //this was 8bits in the original main
 	
 	input wire [15:0] HPF_coefficient,
 	input wire			HPF_en,
 	
 	input wire [15:0] DAC_sequencer_1,
 	input wire [15:0] DAC_sequencer_2,
-	input wire			DAC_sequencer_en_1,
-	input wire			DAC_sequencer_en_2,
-	input wire [1:0]	DAC_en, 			//this was 8bits in the original main
+	input wire [15:0] DAC_sequencer_3,
+	input wire [15:0] DAC_sequencer_4,
+	input wire [15:0] DAC_sequencer_5,
+	input wire [15:0] DAC_sequencer_6,
+	input wire [15:0] DAC_sequencer_7,
+	input wire [15:0] DAC_sequencer_8,
+	
+	input wire [7:0]	DAC_sequencer_en,
+	
+	input wire [7:0]	DAC_en, 			//this was 8bits in the original main
 	input wire [2:0]  DAC_gain,
 	input wire [6:0]  DAC_noise_suppress,
-	output wire[1:0]	DAC_SYNC,
-	output wire[1:0]	DAC_SCLK,
-	output wire[1:0]	DAC_DIN,
+	output wire[7:0]	DAC_SYNC,
+	output wire[7:0]	DAC_SCLK,
+	output wire[7:0]	DAC_DIN,
 	input wire [15:0]	DAC_thrsh_1,
 	input wire [15:0]	DAC_thrsh_2,
-	input wire			DAC_thrsh_pol_1,
-	input wire			DAC_thrsh_pol_2,
+	input wire [15:0]	DAC_thrsh_3,
+	input wire [15:0]	DAC_thrsh_4,
+	input wire [15:0]	DAC_thrsh_5,
+	input wire [15:0]	DAC_thrsh_6,
+	input wire [15:0]	DAC_thrsh_7,
+	input wire [15:0]	DAC_thrsh_8,
+
+	input wire [7:0]	DAC_thrsh_pol,
 	input wire        DAC_reref_mode,
-	input wire[1:0]	DAC_input_is_ref,
+	input wire[7:0]	DAC_input_is_ref,
 	input wire [15:0]	DAC_reref_register,
 	input wire 			DAC_fsm_mode,
 	
 	output integer 	fsm_window_state=0,
 	output wire[15:0] DAC_output_register_1,
 	output wire[15:0] DAC_output_register_2,
+	output wire[15:0] DAC_output_register_3,
+	output wire[15:0] DAC_output_register_4,
+	output wire[15:0] DAC_output_register_5,
+	output wire[15:0] DAC_output_register_6,
+	output wire[15:0] DAC_output_register_7,
+	output wire[15:0] DAC_output_register_8,
+	
 	output integer		main_state,
 	output reg			sample_CLK_out=0,
 	output reg [5:0]	channel=0,  // varies from 0-19 (amplfier channels 0-15, plus 4 auxiliary commands)
 	output reg[15:0]  DAC_register_1=16'b0,
-	output reg[15:0]  DAC_register_2=16'b0
+	output reg[15:0]  DAC_register_2=16'b0,
+	output reg[15:0]  DAC_register_3=16'b0,
+	output reg[15:0]  DAC_register_4=16'b0,
+	output reg[15:0]  DAC_register_5=16'b0,
+	output reg[15:0]  DAC_register_6=16'b0,
+	output reg[15:0]  DAC_register_7=16'b0,
+	output reg[15:0]  DAC_register_8=16'b0
 	
     );
 
 
-
 reg [15:0]		DAC_fsm_counter = 16'b0;
-wire[1:0] 		DAC_in_window;
-wire [1:0]	   DAC_state_status;
+wire[7:0] 		DAC_in_window;
+wire [7:0]	   DAC_state_status;
 reg  [7:0]		DAC_fsm_out = 8'b0;
-wire [1:0]		DAC_thresh_int;
-wire [1:0]		DAC_in_en;
+wire [7:0]		DAC_thresh_int;
+wire [7:0]		DAC_in_en;
 wire 				DAC_advance;
 wire 				DAC_check_states;
 wire 				DAC_any_enabled;
@@ -108,7 +149,7 @@ wire 				DAC_any_enabled;
 		.channel(channel), 
 		.DAC_input(DAC_register_1), 
 		.DAC_sequencer_in(DAC_sequencer_1), 
-		.use_sequencer(DAC_sequencer_en_1), 
+		.use_sequencer(DAC_sequencer_en[0]), 
 		.DAC_en(DAC_en[0]), 
 		.gain(DAC_gain), 
 		.noise_suppress(DAC_noise_suppress), 
@@ -116,7 +157,7 @@ wire 				DAC_any_enabled;
 		.DAC_SCLK(DAC_SCLK[0]), 
 		.DAC_DIN(DAC_DIN[0]), 
 		.DAC_thrsh(DAC_thrsh_1), 
-		.DAC_thrsh_pol(DAC_thrsh_pol_1), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[0]), 
 		.DAC_thrsh_out(DAC_thresh_out[0]), 
 		.DAC_fsm_start_win_in(DAC_start_win_1), //
 		.DAC_fsm_stop_win_in(DAC_stop_win_1), 
@@ -136,7 +177,7 @@ wire 				DAC_any_enabled;
 		.channel(channel), 
 		.DAC_input(DAC_register_2), 
 		.DAC_sequencer_in(DAC_sequencer_2), 
-		.use_sequencer(DAC_sequencer_en_2), 
+		.use_sequencer(DAC_sequencer_en[1]), 
 		.DAC_en(DAC_en[1]), 
 		.gain(DAC_gain), 
 		.noise_suppress(DAC_noise_suppress), 
@@ -144,7 +185,7 @@ wire 				DAC_any_enabled;
 		.DAC_SCLK(DAC_SCLK[1]), 
 		.DAC_DIN(DAC_DIN[1]), 
 		.DAC_thrsh(DAC_thrsh_2), 
-		.DAC_thrsh_pol(DAC_thrsh_pol_2), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[1]), 
 		.DAC_thrsh_out(DAC_thresh_out[1]), 
 		.DAC_fsm_start_win_in(DAC_start_win_2), //
 		.DAC_fsm_stop_win_in(DAC_stop_win_2), 
@@ -157,6 +198,173 @@ wire 				DAC_any_enabled;
 		.DAC_register(DAC_output_register_2)
 	);
 
+DAC_modified DAC_modified_3 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_3), 
+		.DAC_sequencer_in(DAC_sequencer_3), 
+		.use_sequencer(DAC_sequencer_en[2]), 
+		.DAC_en(DAC_en[2]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[2]), 
+		.DAC_SCLK(DAC_SCLK[2]), 
+		.DAC_DIN(DAC_DIN[2]), 
+		.DAC_thrsh(DAC_thrsh_3), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[2]), 
+		.DAC_thrsh_out(DAC_thresh_out[2]), 
+		.DAC_fsm_start_win_in(DAC_start_win_3), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_3), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[2]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[2]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_3)
+	);
+
+DAC_modified DAC_modified_4 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_4), 
+		.DAC_sequencer_in(DAC_sequencer_4), 
+		.use_sequencer(DAC_sequencer_en[3]), 
+		.DAC_en(DAC_en[3]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[3]), 
+		.DAC_SCLK(DAC_SCLK[3]), 
+		.DAC_DIN(DAC_DIN[3]), 
+		.DAC_thrsh(DAC_thrsh_4), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[3]), 
+		.DAC_thrsh_out(DAC_thresh_out[3]), 
+		.DAC_fsm_start_win_in(DAC_start_win_4), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_4), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[3]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[3]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_4)
+	);
+	
+DAC_modified DAC_modified_5 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_5), 
+		.DAC_sequencer_in(DAC_sequencer_5), 
+		.use_sequencer(DAC_sequencer_en[4]), 
+		.DAC_en(DAC_en[4]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[4]), 
+		.DAC_SCLK(DAC_SCLK[4]), 
+		.DAC_DIN(DAC_DIN[4]), 
+		.DAC_thrsh(DAC_thrsh_5), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[4]), 
+		.DAC_thrsh_out(DAC_thresh_out[4]), 
+		.DAC_fsm_start_win_in(DAC_start_win_5), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_5), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[4]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[4]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_5)
+	);
+	
+DAC_modified DAC_modified_6 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_6), 
+		.DAC_sequencer_in(DAC_sequencer_6), 
+		.use_sequencer(DAC_sequencer_en[5]), 
+		.DAC_en(DAC_en[5]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[5]), 
+		.DAC_SCLK(DAC_SCLK[5]), 
+		.DAC_DIN(DAC_DIN[5]), 
+		.DAC_thrsh(DAC_thrsh_6), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[5]), 
+		.DAC_thrsh_out(DAC_thresh_out[5]), 
+		.DAC_fsm_start_win_in(DAC_start_win_6), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_6), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[5]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[5]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_6)
+	);
+
+DAC_modified DAC_modified_7 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_7), 
+		.DAC_sequencer_in(DAC_sequencer_7), 
+		.use_sequencer(DAC_sequencer_en[6]), 
+		.DAC_en(DAC_en[6]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[6]), 
+		.DAC_SCLK(DAC_SCLK[6]), 
+		.DAC_DIN(DAC_DIN[6]), 
+		.DAC_thrsh(DAC_thrsh_7), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[6]), 
+		.DAC_thrsh_out(DAC_thresh_out[6]), 
+		.DAC_fsm_start_win_in(DAC_start_win_7), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_7), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[6]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[6]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_7)
+	);
+	
+DAC_modified DAC_modified_8 (
+		.reset(reset), 
+		.dataclk(dataclk), 
+		.main_state(main_state), 
+		.channel(channel), 
+		.DAC_input(DAC_register_8), 
+		.DAC_sequencer_in(DAC_sequencer_8), 
+		.use_sequencer(DAC_sequencer_en[7]), 
+		.DAC_en(DAC_en[7]), 
+		.gain(DAC_gain), 
+		.noise_suppress(DAC_noise_suppress), 
+		.DAC_SYNC(DAC_SYNC[7]), 
+		.DAC_SCLK(DAC_SCLK[7]), 
+		.DAC_DIN(DAC_DIN[7]), 
+		.DAC_thrsh(DAC_thrsh_8), 
+		.DAC_thrsh_pol(DAC_thrsh_pol[7]), 
+		.DAC_thrsh_out(DAC_thresh_out[7]), 
+		.DAC_fsm_start_win_in(DAC_start_win_8), //
+		.DAC_fsm_stop_win_in(DAC_stop_win_8), 
+		.DAC_fsm_state_counter_in(DAC_fsm_counter), 
+		.DAC_fsm_inwin_out(DAC_in_window[7]), //
+		.HPF_coefficient(HPF_coefficient), 
+		.HPF_en(HPF_en), 
+		.software_reference_mode(DAC_reref_mode & ~DAC_input_is_ref[7]), 
+		.software_reference(DAC_reref_register), 
+		.DAC_register(DAC_output_register_8)
+	);
 	always @(posedge sample_CLK_out) begin
 		if (reset) begin
 			// MM 1/16/18 - FSM DISCRIMINATOR - START
@@ -249,6 +457,12 @@ wire 				DAC_any_enabled;
 					if (channel == 0) begin		// update  DAC registers with the amplifier data
 						DAC_register_1 <= ampl_to_DAC;
 						DAC_register_2 <= ampl_to_DAC;
+						DAC_register_3 <= ampl_to_DAC;
+						DAC_register_4 <= ampl_to_DAC;
+						DAC_register_5 <= ampl_to_DAC;
+						DAC_register_6 <= ampl_to_DAC;
+						DAC_register_7 <= ampl_to_DAC;
+						DAC_register_8 <= ampl_to_DAC;
 					end
 					main_state <= ms_clk9_d;
 				end

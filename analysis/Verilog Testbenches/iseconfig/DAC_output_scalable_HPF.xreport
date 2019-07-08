@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <report-views version="2.0" >
  <header>
-  <DateModified>2019-01-17T16:42:40</DateModified>
+  <DateModified>2019-07-08T12:34:52</DateModified>
   <ModuleName>DAC_output_scalable_HPF</ModuleName>
   <SummaryTimeStamp>Unknown</SummaryTimeStamp>
-  <SavedFilePath>C:/Users/BuccelliLab/Documents/GitHub/intan-dac-debug/HPF_tests/iseconfig/DAC_output_scalable_HPF.xreport</SavedFilePath>
-  <ImplementationReportsDirectory>C:/Users/BuccelliLab/Documents/GitHub/intan-dac-debug/HPF_tests\</ImplementationReportsDirectory>
+  <SavedFilePath>C:/Users/BuccelliLab/Documents/GitHub/Intan-DAC-State-Machine-Detector/analysis/Verilog Testbenches/iseconfig/DAC_output_scalable_HPF.xreport</SavedFilePath>
+  <ImplementationReportsDirectory>C:/Users/BuccelliLab/Documents/GitHub/Intan-DAC-State-Machine-Detector/analysis/Verilog Testbenches\</ImplementationReportsDirectory>
   <DateInitialized>2019-01-14T11:36:16</DateInitialized>
   <EnableMessageFiltering>false</EnableMessageFiltering>
  </header>
