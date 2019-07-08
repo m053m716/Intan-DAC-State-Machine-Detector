@@ -63,7 +63,6 @@ All **matlab** test-benches were made using Matlab version R2017a, and do not re
 
 ### Verilog
 
-The **verilog** tesbench gets data from a txt file, performs a spike detection through the window discriminator algorithm with the same parameters used online and outputs the simulated DAC_register values. A matlab code then compares the online and the simulated DAC_register values and plots the results.
-
+The **verilog** tesbench was made using ISE Design Suite 14.7. All the details on how to use it can be found [here]()
 
 
