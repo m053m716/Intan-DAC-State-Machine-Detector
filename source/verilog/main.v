@@ -333,8 +333,8 @@ module main #(
 	
 	// Board ID number and verison
 	
-	localparam BOARD_ID = 16'd800;
-	localparam BOARD_VERSION = 16'd1;
+	localparam BOARD_ID = 16'd850;
+	localparam BOARD_VERSION = 16'd2;
 	
 	
 	// Wires and registers
@@ -413,8 +413,13 @@ module main #(
 	wire [4:0] 		DAC_channel_sel_5, DAC_channel_sel_6, DAC_channel_sel_7, DAC_channel_sel_8;
 	wire [3:0] 		DAC_stream_sel_1, DAC_stream_sel_2, DAC_stream_sel_3, DAC_stream_sel_4;
 	wire [3:0] 		DAC_stream_sel_5, DAC_stream_sel_6, DAC_stream_sel_7, DAC_stream_sel_8;
-	wire 				DAC_en_1, DAC_en_2, DAC_en_3, DAC_en_4;
-	wire 				DAC_en_5, DAC_en_6, DAC_en_7, DAC_en_8;
+	
+	// MM 01/12/2018 - FSM DISCIMINATOR - START
+//	wire 				DAC_en_1, DAC_en_2, DAC_en_3, DAC_en_4;
+//	wire 				DAC_en_5, DAC_en_6, DAC_en_7, DAC_en_8;
+	wire [7:0]		DAC_en;
+	// END
+	
 	reg [15:0]		DAC_pre_register_1, DAC_pre_register_2, DAC_pre_register_3, DAC_pre_register_4;
 	reg [15:0]		DAC_pre_register_5, DAC_pre_register_6, DAC_pre_register_7, DAC_pre_register_8;
 	reg [15:0]		DAC_register_1, DAC_register_2, DAC_register_3, DAC_register_4;
@@ -473,6 +478,28 @@ module main #(
 	wire [3:0] prog_channel, prog_address;
 	wire [4:0] prog_module;
 	wire [15:0] prog_word;
+	
+	// MM 01/12/2018 - FSM DISCRIMINATOR - START
+	reg  				DAC_fsm_mode;
+	reg [15:0]		DAC_fsm_counter;
+	reg [15:0]		DAC_start_win_1, DAC_start_win_2, DAC_start_win_3, DAC_start_win_4;
+	reg [15:0]		DAC_start_win_5, DAC_start_win_6, DAC_start_win_7, DAC_start_win_8;
+	reg [15:0]		DAC_stop_win_1, DAC_stop_win_2, DAC_stop_win_3, DAC_stop_win_4;
+	reg [15:0]		DAC_stop_win_5, DAC_stop_win_6, DAC_stop_win_7, DAC_stop_win_8;
+	reg [15:0]		DAC_stop_max;
+	reg  [7:0]		DAC_edge_type;
+	wire [7:0]		DAC_in_window;
+	wire [7:0]	   DAC_state_status;
+	reg  [7:0]		DAC_fsm_out;
+	wire [7:0]		DAC_thresh_int;
+	wire [7:0]		DAC_in_en;
+	wire 				DAC_advance;
+	wire 				DAC_check_states;
+	wire 				DAC_any_enabled;
+	
+	wire [15:0] ep47trigin, ep48trigin; // had to add some USB WireIn triggers for "multi-use wire"
+	
+	// END
 				
 	
 	// USB WireIn inputs
@@ -561,43 +588,50 @@ module main #(
    assign data_stream_8_en_in = 		ep14wirein[7];
 
 	// ep15 currently unused
-	
 	assign DAC_channel_sel_1 = 		ep16wirein[4:0];
 	assign DAC_stream_sel_1 = 			ep16wirein[8:5];
-	assign DAC_en_1 = 					ep16wirein[9];
+	assign DAC_en[0] = 					ep16wirein[9];
 	
 	assign DAC_channel_sel_2 = 		ep17wirein[4:0];
 	assign DAC_stream_sel_2 = 			ep17wirein[8:5];
-	assign DAC_en_2 = 					ep17wirein[9];
+	assign DAC_en[1] = 					ep17wirein[9];
 	
 	assign DAC_channel_sel_3 = 		ep18wirein[4:0];
 	assign DAC_stream_sel_3 = 			ep18wirein[8:5];
-	assign DAC_en_3 = 					ep18wirein[9];
+	assign DAC_en[2] = 					ep18wirein[9];
 	
 	assign DAC_channel_sel_4 = 		ep19wirein[4:0];
 	assign DAC_stream_sel_4 = 			ep19wirein[8:5];
-	assign DAC_en_4 = 					ep19wirein[9];
+	assign DAC_en[3] = 					ep19wirein[9];
 	
 	assign DAC_channel_sel_5 = 		ep1awirein[4:0];
 	assign DAC_stream_sel_5 = 			ep1awirein[8:5];
-	assign DAC_en_5 = 					ep1awirein[9];
+	assign DAC_en[4] = 					ep1awirein[9];
 	
 	assign DAC_channel_sel_6 = 		ep1bwirein[4:0];
 	assign DAC_stream_sel_6 = 			ep1bwirein[8:5];
-	assign DAC_en_6 = 					ep1bwirein[9];
+	assign DAC_en[5] = 					ep1bwirein[9];
 	
 	assign DAC_channel_sel_7 = 		ep1cwirein[4:0];
 	assign DAC_stream_sel_7 = 			ep1cwirein[8:5];
-	assign DAC_en_7 = 					ep1cwirein[9];
+	assign DAC_en[6] = 					ep1cwirein[9];
 	
 	assign DAC_channel_sel_8 = 		ep1dwirein[4:0];
 	assign DAC_stream_sel_8 = 			ep1dwirein[8:5];
-	assign DAC_en_8 = 					ep1dwirein[9];
+	assign DAC_en[7] = 					ep1dwirein[9];
 	
 	always @(posedge dataclk) begin
 		DAC_manual <= 						ep1ewirein;
 	end
-
+	
+	// MM - UPDATE - WINDOW DISCRIMINATOR - 1/16/18
+	assign DAC_in_en = (~DAC_in_window) | (~DAC_en); // Tracks "In window" or "Enabled"; if a DAC channel is not one or the other, it will not interrupt state machine
+	assign DAC_thresh_int = DAC_thresh_out ^ DAC_edge_type; // Intermediate threshold to X-OR the threshold level with the threshold type. If threshold is HIGH, but edge is also HIGH, interrupts machine.
+	assign DAC_state_status = DAC_thresh_int | DAC_in_en; // The thresholding does not matter outside the window, or if DAC is disabled.
+	assign DAC_check_states = &DAC_state_status; // Reduce the state status to a logical value (all conditions must be met)
+	assign DAC_any_enabled = |DAC_en; 				// At least one DAC must be enabled to run the machine (otherwise it will constantly stim.)
+	assign DAC_advance = DAC_check_states && DAC_any_enabled; // If all state criteria are met, advances to next clock cycle iteration.
+	// END UPDATE
 	
 	// USB TriggerIn inputs
 
@@ -692,6 +726,90 @@ module main #(
 		loop_aux_cmd_index_4 <=			ep1fwirein[12:0];
 	end
 	
+	// MM 1/12/2018 - FSM DISCRIMINATOR - START
+	always @(posedge ep47trigin[0]) begin
+		DAC_start_win_1	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[1]) begin
+		DAC_start_win_2	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[2]) begin
+		DAC_start_win_3	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[3]) begin
+		DAC_start_win_4	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[4]) begin
+		DAC_start_win_5	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[5]) begin
+		DAC_start_win_6	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[6]) begin
+		DAC_start_win_7	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[7]) begin
+		DAC_start_win_8	<=				ep1fwirein;
+	end
+	
+	always @(posedge ep47trigin[8]) begin
+		DAC_stop_win_1	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[9]) begin
+		DAC_stop_win_2	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[10]) begin
+		DAC_stop_win_3	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[11]) begin
+		DAC_stop_win_4	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[12]) begin
+		DAC_stop_win_5	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[13]) begin
+		DAC_stop_win_6	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[14]) begin
+		DAC_stop_win_7	<=				ep1fwirein;
+	end
+	always @(posedge ep47trigin[15]) begin
+		DAC_stop_win_8	<=				ep1fwirein;
+	end
+	
+	always @(posedge ep48trigin[0]) begin
+		DAC_edge_type[0]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[1]) begin
+		DAC_edge_type[1]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[2]) begin
+		DAC_edge_type[2]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[3]) begin
+		DAC_edge_type[3]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[4]) begin
+		DAC_edge_type[4]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[5]) begin
+		DAC_edge_type[5]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[6]) begin
+		DAC_edge_type[6]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[7]) begin
+		DAC_edge_type[7]	<=				(ep1fwirein[0]);
+	end
+	always @(posedge ep48trigin[14]) begin
+		DAC_stop_max 		<= 			ep1fwirein;
+	end
+	always @(posedge ep48trigin[15]) begin
+		DAC_fsm_mode		<=				(ep1fwirein[0]);
+	end
+	
+	// END
+	
 	// USB WireOut outputs
 
 	assign ep20wireout = 				num_words_in_FIFO[15:0];
@@ -699,7 +817,9 @@ module main #(
 	
 	assign ep22wireout = 				{ 15'b0, SPI_running };
 		
-	assign ep23wireout = 				TTL_in;
+	// MM - UPDATE - WINDOW DISCRIMINATOR - 1/16/18
+	assign ep23wireout = 				DAC_fsm_mode ? {DAC_fsm_out, TTL_in[7:0]} : TTL_in;
+	// END UPDATE
 	
 	assign ep24wireout = 				{ 14'b0, DCM_prog_done, dataclk_locked };
 	
@@ -931,29 +1051,8 @@ module main #(
 	wire [15:0] charge_recov_A1, charge_recov_A2, charge_recov_B1, charge_recov_B2, charge_recov_C1, charge_recov_C2, charge_recov_D1, charge_recov_D2;
 	wire [15:0] amp_settle_A1, amp_settle_A2, amp_settle_B1, amp_settle_B2, amp_settle_C1, amp_settle_C2, amp_settle_D1, amp_settle_D2;
 	wire [15:0] amp_settle_A1_pre, amp_settle_A2_pre, amp_settle_B1_pre, amp_settle_B2_pre, amp_settle_C1_pre, amp_settle_C2_pre, amp_settle_D1_pre, amp_settle_D2_pre;
-	wire amp_settle_changed_A1_pre, amp_settle_changed_A2_pre, amp_settle_changed_B1_pre, amp_settle_changed_B2_pre;
-	wire amp_settle_changed_C1_pre, amp_settle_changed_C2_pre, amp_settle_changed_D1_pre, amp_settle_changed_D2_pre;
-	wire any_amp_settle_changed_A, any_amp_settle_changed_B, any_amp_settle_changed_C, any_amp_settle_changed_D;
-	wire any_amp_settle_changed;
-	
-	assign any_amp_settle_changed_A = amp_settle_changed_A1_pre || amp_settle_changed_A2_pre;
-	assign any_amp_settle_changed_B = amp_settle_changed_B1_pre || amp_settle_changed_B2_pre;
-	assign any_amp_settle_changed_C = amp_settle_changed_C1_pre || amp_settle_changed_C2_pre;
-	assign any_amp_settle_changed_D = amp_settle_changed_D1_pre || amp_settle_changed_D2_pre;
-
-	assign any_amp_settle_changed = any_amp_settle_changed_A || any_amp_settle_changed_B || any_amp_settle_changed_C || any_amp_settle_changed_D;
-
 	wire amp_settle_changed_A1, amp_settle_changed_A2, amp_settle_changed_B1, amp_settle_changed_B2;
 	wire amp_settle_changed_C1, amp_settle_changed_C2, amp_settle_changed_D1, amp_settle_changed_D2;
-
-	assign amp_settle_changed_A1 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_A ? any_amp_settle_changed_A : amp_settle_changed_A1_pre);
-	assign amp_settle_changed_A2 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_A ? any_amp_settle_changed_A : amp_settle_changed_A2_pre);
-	assign amp_settle_changed_B1 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_B ? any_amp_settle_changed_B : amp_settle_changed_B1_pre);
-	assign amp_settle_changed_B2 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_B ? any_amp_settle_changed_B : amp_settle_changed_B2_pre);
-	assign amp_settle_changed_C1 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_C ? any_amp_settle_changed_C : amp_settle_changed_C1_pre);
-	assign amp_settle_changed_C2 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_C ? any_amp_settle_changed_C : amp_settle_changed_C2_pre);
-	assign amp_settle_changed_D1 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_D ? any_amp_settle_changed_D : amp_settle_changed_D1_pre);
-	assign amp_settle_changed_D2 = settle_all_headstages ? any_amp_settle_changed : (settle_whole_headstage_D ? any_amp_settle_changed_D : amp_settle_changed_D2_pre);
 	
 	command_selector_stim command_selector_stim_A1 (
 		.channel(channel), .shutdown(shutdown), .DSP_settle(DSP_settle), .amp_settle_mode(amp_settle_mode), .charge_recov_mode(charge_recov_mode),
@@ -1152,6 +1251,69 @@ module main #(
 				  ms_cs_h    = 237,
 				  ms_cs_i    = 238,
 				  ms_cs_j    = 239;
+   
+	// MM 1/22/2018 - FSM DISCRIMINATOR - START
+	integer fsm_window_state;
+	localparam
+			  fsm_idle   = 0,
+			  fsm_track  = 1,
+			  fsm_stim   = 2;
+
+	always @(posedge sample_CLK_out) begin
+		if (reset) begin
+			// MM 1/16/18 - FSM DISCRIMINATOR - START
+			fsm_window_state <= fsm_idle;
+			DAC_fsm_out <= 8'b0100_0000;
+			DAC_fsm_counter <= 16'b0;
+			// END
+		end else begin					
+			if (DAC_fsm_mode) begin
+				case (fsm_window_state)
+					
+					fsm_idle: begin
+						DAC_fsm_out <= 8'b0100_0000;
+						if (DAC_advance) begin
+							fsm_window_state <= fsm_track;
+							DAC_fsm_counter <= DAC_fsm_counter + 1;
+						end
+					end
+					
+					fsm_track: begin
+						DAC_fsm_out <= 8'b0010_0000;
+						if (DAC_advance) begin
+							if (DAC_fsm_counter==DAC_stop_max) begin
+								fsm_window_state <= fsm_stim;
+								DAC_fsm_counter <= 16'b0;
+							end else begin
+								fsm_window_state <= fsm_track;
+								DAC_fsm_counter <= DAC_fsm_counter + 1;
+							end
+						end else begin
+							fsm_window_state <= fsm_idle;
+							DAC_fsm_counter <= 16'b0;
+						end
+					end 
+						  
+					fsm_stim: begin
+						DAC_fsm_out <= 8'b0001_0000;
+						fsm_window_state <= fsm_idle;
+					end
+					
+					default: begin
+						DAC_fsm_out <= 8'b0100_0000;
+						fsm_window_state <= fsm_idle;
+						DAC_fsm_counter <= 16'b0;
+					end
+				endcase
+			end else begin
+				fsm_window_state <= fsm_idle;
+				DAC_fsm_counter <= 16'b0;
+				DAC_fsm_out <= 8'b0000_0000;
+			end
+		end
+	end
+		
+	// MM 1/22/2018 - FSM DISCRIMINATOR - END
 
 				 	
 	always @(posedge dataclk) begin
@@ -1174,6 +1336,7 @@ module main #(
 			FIFO_write_to <= 1'b0;
 			ADC_triggers <= 8'b0;
 			shutdown <= 1'b0;
+			
 		end else begin
 			CS_b <= 1'b0;
 			SCLK <= 1'b0;
@@ -1265,8 +1428,10 @@ module main #(
 					end
 
 					if (channel == 0 && ~shutdown) begin		// grab TTL inputs, and grab current state of TTL outputs and manual DAC outputs
-						data_stream_TTL_in <= TTL_in;
-						data_stream_TTL_out <= TTL_out_direct;					
+						// MM - UPDATE - WINDOW DISCRIMINATOR - 1/16/18
+						data_stream_TTL_in <= DAC_fsm_mode ? {DAC_fsm_out, TTL_in[7:0]}  : TTL_in;
+						data_stream_TTL_out <= DAC_fsm_mode ? {DAC_fsm_out, TTL_out_direct[7:0]} : TTL_out_direct;					
+						// END UPDATE
 					end
 
 					if (channel == 0 && ~shutdown) begin		// update all DAC registers simultaneously
@@ -1290,6 +1455,7 @@ module main #(
 					MOSI_C2 <= MOSI_cmd_C2[31];
 					MOSI_D2 <= MOSI_cmd_D2[31];
 					main_state <= ms_clk1_b;
+					
 				end
 
 				ms_clk1_b: begin
@@ -3263,47 +3429,47 @@ module main #(
 	
 	// Stimulation sequencers, digital output sequencer
 	wire [31:0] triggers;
-	assign triggers = { manual_triggers[7:0], ADC_triggers, TTL_in };
+	assign triggers = DAC_fsm_mode ? { manual_triggers[7:0], ADC_triggers, DAC_fsm_out, TTL_in[7:0] } : { manual_triggers[7:0], ADC_triggers, TTL_in };
 	
 	stim_sequencer #(0) stim_sequencer_A1 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_A1), .stim_pol(stim_pol_A1), .amp_settle(amp_settle_A1_pre), .charge_recov(charge_recov_A1),
-		.amp_settle_changed(amp_settle_changed_A1_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_A1), .reset_sequencer(reset_sequencers));
 
 	stim_sequencer #(1) stim_sequencer_A2 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_A2), .stim_pol(stim_pol_A2), .amp_settle(amp_settle_A2_pre), .charge_recov(charge_recov_A2),
-		.amp_settle_changed(amp_settle_changed_A2_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_A2), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(2) stim_sequencer_B1 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_B1), .stim_pol(stim_pol_B1), .amp_settle(amp_settle_B1_pre), .charge_recov(charge_recov_B1),
-		.amp_settle_changed(amp_settle_changed_B1_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_B1), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(3) stim_sequencer_B2 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_B2), .stim_pol(stim_pol_B2), .amp_settle(amp_settle_B2_pre), .charge_recov(charge_recov_B2),
-		.amp_settle_changed(amp_settle_changed_B2_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_B2), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(4) stim_sequencer_C1 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_C1), .stim_pol(stim_pol_C1), .amp_settle(amp_settle_C1_pre), .charge_recov(charge_recov_C1),
-		.amp_settle_changed(amp_settle_changed_C1_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_C1), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(5) stim_sequencer_C2 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_C2), .stim_pol(stim_pol_C2), .amp_settle(amp_settle_C2_pre), .charge_recov(charge_recov_C2),
-		.amp_settle_changed(amp_settle_changed_C2_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_C2), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(6) stim_sequencer_D1 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_D1), .stim_pol(stim_pol_D1), .amp_settle(amp_settle_D1_pre), .charge_recov(charge_recov_D1),
-		.amp_settle_changed(amp_settle_changed_D1_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_D1), .reset_sequencer(reset_sequencers));
 		
 	stim_sequencer #(7) stim_sequencer_D2 (.reset(reset), .dataclk(dataclk), .main_state(main_state), .channel(channel),
 		.prog_channel(prog_channel), .prog_address(prog_address), .prog_module(prog_module), .prog_word(prog_word), .prog_trig(prog_trig),
 		.triggers(triggers), .stim_on(stim_on_D2), .stim_pol(stim_pol_D2), .amp_settle(amp_settle_D2_pre), .charge_recov(charge_recov_D2),
-		.amp_settle_changed(amp_settle_changed_D2_pre), .reset_sequencer(reset_sequencers));
+		.amp_settle_changed(amp_settle_changed_D2), .reset_sequencer(reset_sequencers));
 		
 	wire [15:0] DAC_sequencer_1, DAC_sequencer_2, DAC_sequencer_3, DAC_sequencer_4;
 	wire [15:0] DAC_sequencer_5, DAC_sequencer_6, DAC_sequencer_7, DAC_sequencer_8;
@@ -3394,7 +3560,6 @@ module main #(
 	assign amp_settle_D1 = settle_all_headstages ? {16{any_amp_settle}} : (settle_whole_headstage_D ? {16{any_amp_settle_D}} : amp_settle_D1_pre);
 	assign amp_settle_D2 = settle_all_headstages ? {16{any_amp_settle}} : (settle_whole_headstage_D ? {16{any_amp_settle_D}} : amp_settle_D2_pre);
 
-
 	// Input deserializer
 	
 	wire [15:0] TTL_in, TTL_parallel;
@@ -3423,6 +3588,9 @@ module main #(
 	wire [15:0] DAC_output_register_1, DAC_output_register_2, DAC_output_register_3, DAC_output_register_4;
 	wire [15:0] DAC_output_register_5, DAC_output_register_6, DAC_output_register_7, DAC_output_register_8;
 	
+	// MM - UPDATE - WINDOW DISCRIMINATOR - 1/16/18
+	// (ADDED to module: DAC_output_scalable_HPF)
+	
 	DAC_output_scalable_HPF #(
 		.ms_wait		(ms_wait),
 		.ms_clk1_a 	(ms_clk1_a),
@@ -3438,7 +3606,7 @@ module main #(
 		.DAC_input 		(DAC_register_1),
 		.DAC_sequencer_in (DAC_sequencer_1),
 		.use_sequencer (DAC_sequencer_en_1),
-		.DAC_en 			(DAC_en_1),
+		.DAC_en 			(DAC_en[0]),
 		.gain				(DAC_gain),
 		.noise_suppress(DAC_noise_suppress),
 		.DAC_SYNC 		(DAC_SYNC),
@@ -3447,6 +3615,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_1),
 		.DAC_thrsh_pol (DAC_thresh_pol_1),
 		.DAC_thrsh_out (DAC_thresh_out[0]),
+		.DAC_fsm_start_win_in (DAC_start_win_1),
+		.DAC_fsm_stop_win_in (DAC_stop_win_1),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[0]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_1_input_is_ref),
@@ -3469,7 +3641,7 @@ module main #(
 		.DAC_input	 	(DAC_register_2),
 		.DAC_sequencer_in (DAC_sequencer_2),
 		.use_sequencer (DAC_sequencer_en_2),
-		.DAC_en 			(DAC_en_2),
+		.DAC_en 			(DAC_en[1]),
 		.gain				(DAC_gain),
 		.noise_suppress(DAC_noise_suppress),
 		.DAC_SYNC 		(),
@@ -3478,6 +3650,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_2),
 		.DAC_thrsh_pol (DAC_thresh_pol_2),
 		.DAC_thrsh_out (DAC_thresh_out[1]),
+		.DAC_fsm_start_win_in (DAC_start_win_2),
+		.DAC_fsm_stop_win_in (DAC_stop_win_2),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[1]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_2_input_is_ref),
@@ -3500,7 +3676,7 @@ module main #(
 		.DAC_input	 	(DAC_register_3),
 		.DAC_sequencer_in (DAC_sequencer_3),
 		.use_sequencer (DAC_sequencer_en_3),
-		.DAC_en 			(DAC_en_3),
+		.DAC_en 			(DAC_en[2]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3509,6 +3685,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_3),
 		.DAC_thrsh_pol (DAC_thresh_pol_3),
 		.DAC_thrsh_out (DAC_thresh_out[2]),
+		.DAC_fsm_start_win_in (DAC_start_win_3),
+		.DAC_fsm_stop_win_in (DAC_stop_win_3),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[2]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_3_input_is_ref),
@@ -3531,7 +3711,7 @@ module main #(
 		.DAC_input	 	(DAC_register_4),
 		.DAC_sequencer_in (DAC_sequencer_4),
 		.use_sequencer (DAC_sequencer_en_4),
-		.DAC_en 			(DAC_en_4),
+		.DAC_en 			(DAC_en[3]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3540,6 +3720,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_4),
 		.DAC_thrsh_pol (DAC_thresh_pol_4),
 		.DAC_thrsh_out (DAC_thresh_out[3]),
+		.DAC_fsm_start_win_in (DAC_start_win_4),
+		.DAC_fsm_stop_win_in (DAC_stop_win_4),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[3]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_4_input_is_ref),
@@ -3562,7 +3746,7 @@ module main #(
 		.DAC_input	 	(DAC_register_5),
 		.DAC_sequencer_in (DAC_sequencer_5),
 		.use_sequencer (DAC_sequencer_en_5),
-		.DAC_en 			(DAC_en_5),
+		.DAC_en 			(DAC_en[4]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3571,6 +3755,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_5),
 		.DAC_thrsh_pol (DAC_thresh_pol_5),
 		.DAC_thrsh_out (DAC_thresh_out[4]),
+		.DAC_fsm_start_win_in (DAC_start_win_5),
+		.DAC_fsm_stop_win_in (DAC_stop_win_5),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[4]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_5_input_is_ref),
@@ -3593,7 +3781,7 @@ module main #(
 		.DAC_input	 	(DAC_register_6),
 		.DAC_sequencer_in (DAC_sequencer_6),
 		.use_sequencer (DAC_sequencer_en_6),
-		.DAC_en 			(DAC_en_6),
+		.DAC_en 			(DAC_en[5]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3602,6 +3790,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_6),
 		.DAC_thrsh_pol (DAC_thresh_pol_6),
 		.DAC_thrsh_out (DAC_thresh_out[5]),
+		.DAC_fsm_start_win_in (DAC_start_win_6),
+		.DAC_fsm_stop_win_in (DAC_stop_win_6),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[5]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_6_input_is_ref),
@@ -3624,7 +3816,7 @@ module main #(
 		.DAC_input	 	(DAC_register_7),
 		.DAC_sequencer_in (DAC_sequencer_7),
 		.use_sequencer (DAC_sequencer_en_7),
-		.DAC_en 			(DAC_en_7),
+		.DAC_en 			(DAC_en[6]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3633,6 +3825,10 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_7),
 		.DAC_thrsh_pol (DAC_thresh_pol_7),
 		.DAC_thrsh_out (DAC_thresh_out[6]),
+		.DAC_fsm_start_win_in (DAC_start_win_7),
+		.DAC_fsm_stop_win_in (DAC_stop_win_7),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[6]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_7_input_is_ref),
@@ -3655,7 +3851,7 @@ module main #(
 		.DAC_input	 	(DAC_register_8),
 		.DAC_sequencer_in (DAC_sequencer_8),
 		.use_sequencer (DAC_sequencer_en_8),
-		.DAC_en 			(DAC_en_8),
+		.DAC_en 			(DAC_en[7]),
 		.gain				(DAC_gain),
 		.noise_suppress(0),
 		.DAC_SYNC 		(),
@@ -3664,13 +3860,17 @@ module main #(
 		.DAC_thrsh     (DAC_thresh_8),
 		.DAC_thrsh_pol (DAC_thresh_pol_8),
 		.DAC_thrsh_out (DAC_thresh_out[7]),
+		.DAC_fsm_start_win_in (DAC_start_win_8),
+		.DAC_fsm_stop_win_in (DAC_stop_win_8),
+		.DAC_fsm_state_counter_in (DAC_fsm_counter),
+		.DAC_fsm_inwin_out (DAC_in_window[7]),
 		.HPF_coefficient (HPF_coefficient),
 		.HPF_en			(HPF_en),
 		.software_reference_mode (DAC_reref_mode & ~DAC_8_input_is_ref),
 		.software_reference (DAC_reref_register),
 		.DAC_register	(DAC_output_register_8)
 	);
-	
+	// END UPDATE
 
 	// Evaluation board 16-bit ADC inputs
 
@@ -3892,6 +4092,11 @@ module main #(
 	okTriggerIn  ti43 (.ok1(ok1),                            .ep_addr(8'h43), .ep_clk(ti_clk),  .ep_trigger(ep43trigin));
 	okTriggerIn  ti44 (.ok1(ok1),                            .ep_addr(8'h44), .ep_clk(ti_clk),  .ep_trigger(ep44trigin));
 	okTriggerIn  ti45 (.ok1(ok1),                            .ep_addr(8'h45), .ep_clk(ti_clk),  .ep_trigger(ep45trigin));
+	
+	// MM 1/12/2018 - FSM DISCRIMINATOR - START
+	okTriggerIn     ti47 (.ok1(ok1),                         .ep_addr(8'h47), .ep_clk(ti_clk),  .ep_trigger(ep47trigin));
+	okTriggerIn     ti48 (.ok1(ok1),                         .ep_addr(8'h48), .ep_clk(ti_clk),  .ep_trigger(ep48trigin));
+	// END
 	
 	okWireOut    wo20 (.ok1(ok1), .ok2(ok2x[ 0*17 +: 17 ]),  .ep_addr(8'h20), .ep_datain(ep20wireout));
 	okWireOut    wo21 (.ok1(ok1), .ok2(ok2x[ 1*17 +: 17 ]),  .ep_addr(8'h21), .ep_datain(ep21wireout));
